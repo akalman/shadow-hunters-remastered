@@ -1,0 +1,25 @@
+_pieces = {}
+_pieces[Player.White.color] = { hp = '5a53f4', area = '6cb9a8' }
+_pieces[Player.Brown.color] = { hp = '898f1f', area = '415da1' }
+_pieces[Player.Red.color] = { hp = '265782', area = '4e350d' }
+_pieces[Player.Orange.color] = { hp = '1b18b8', area = 'e37295' }
+_pieces[Player.Yellow.color] = { hp = '0ba7af', area = '559424' }
+_pieces[Player.Green.color] = { hp = '6e27c1', area = 'eedf2d' }
+_pieces[Player.Teal.color] = { hp = '737db5', area = '658939' }
+_pieces[Player.Blue.color] = { hp = 'd173e1', area = '8f4360' }
+_pieces[Player.Purple.color] = { hp = '6b4e28', area = '18dad9' }
+_pieces[Player.Pink.color] = { hp = '970290', area = 'd46d4d' }
+
+config = {
+    cardsToUse = {
+        base = true,
+        romantic = false,
+        muttstain = false,
+        starwars = false,
+        gamenight = false
+    },
+    gameMode = {
+        allneutrals = false
+    },
+    pieces = _pieces
+}

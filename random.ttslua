@@ -1,0 +1,8 @@
+_getRandomFromList = function (list)
+    index = math.random(#list)
+    return list[index]
+end
+
+random = {
+    getRandomFromList = _getRandomFromList
+}

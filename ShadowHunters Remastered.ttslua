@@ -1,0 +1,200 @@
+#include config
+#include random
+
+function getPlayerCount()
+    count = 0
+    for _ in ipairs(getSeatedPlayers()) do
+        count = count + 1
+    end
+    return count
+end
+
+function deleteUnusedSeats()
+    players = {}
+    for _,player in ipairs(getSeatedPlayers()) do
+        players[player] = true
+    end
+
+    for _,player in ipairs(Player.getAvailableColors()) do
+        if not players[player] then
+            destroyObject(getObjectFromGUID(config.pieces[player].hp))
+            destroyObject(getObjectFromGUID(config.pieces[player].area))
+        end
+    end
+end
+
+function startGame(obj, color, alt_click)
+    params = {
+        playerCount = getPlayerCount(),
+        --playerCount = 10,
+        cardsToUse = config.cardsToUse,
+        gameMode = config.gameMode
+    }
+
+    res = getObjectFromGUID('1dc2f9').call('startGame', params)
+
+    if res then
+        self.clearButtons()
+        deleteUnusedSeats()
+
+        firstPlayer = random.getRandomFromList(getSeatedPlayers())
+        broadcastToAll(firstPlayer .. " goes first.", Color.fromString(firstPlayer))
+    end
+end
+
+function toggleCardsToUse(key, idx)
+    config.cardsToUse[key] = not config.cardsToUse[key]
+    if config.cardsToUse[key] then
+        self.editButton({
+            index = idx,
+            color = { 1, 1, 1}
+        })
+    else
+        self.editButton({
+            index = idx,
+            color = { 0.7, 0.7, 0.7 }
+        })
+    end
+end
+
+function toggleGameMode(key, idx)
+    config.gameMode[key] = not config.gameMode[key]
+    if config.gameMode[key] then
+        self.editButton({
+            index = idx,
+            color = { 1, 1, 1}
+        })
+    else
+        self.editButton({
+            index = idx,
+            color = { 0.7, 0.7, 0.7 }
+        })
+    end
+end
+
+self.createButton({
+    click_function = 'startGame',
+    function_owner = self,
+    label          = 'Start Game',
+    position       = { 6.325, 0.59, 7.97 },
+    rotation       = {0, 0, 0},
+    width          = 1840,
+    height         = 250,
+    font_size      = 110,
+    color          = {1, 1, 1},
+    font_color     = {0, 0, 0}
+})
+
+-------------------
+-- CARD SET TOGGLES
+-------------------
+
+setIdxOffset = 1
+sets = { }
+sets.base = {
+    click_function = "toggleBase",
+    label = "Base Characters",
+    char_num = "20",
+    idx = 0,
+    default_color = { 1,1,1 }
+}
+sets.romantic = {
+    click_function = "toggleRomantic",
+    label = "RomanticMushroom\nExpansion",
+    char_num = "26",
+    idx = 1,
+    default_color = { 0.7, 0.7, 0.7 }
+}
+sets.muttstain = {
+    click_function = "toggleMuttstain",
+    label = "Muttstain Expansion",
+    char_num = "80",
+    idx = 2,
+    default_color = { 0.7, 0.7, 0.7 }
+}
+sets.starwars = {
+    click_function = "toggleStarwars",
+    label = "Muttstain Star\nWars Mini-Expansion",
+    char_num = "10",
+    idx = 3,
+    default_color = { 0.7, 0.7, 0.7 }
+}
+sets.gamenight = {
+    click_function = "toggleGameNight",
+    label = " Game Night\nExpansion",
+    char_num = "13",
+    idx = 4,
+    default_color = { 0.7, 0.7, 0.7 }
+}
+
+
+function toggleBase()
+    toggleCardsToUse('base', sets.base.idx + setIdxOffset)
+end
+function toggleRomantic()
+    toggleCardsToUse('romantic', sets.romantic.idx + setIdxOffset)
+end
+function toggleMuttstain()
+    toggleCardsToUse('muttstain', sets.muttstain.idx + setIdxOffset)
+end
+function toggleStarwars()
+    toggleCardsToUse('starwars', sets.starwars.idx + setIdxOffset)
+end
+function toggleGameNight()
+    toggleCardsToUse('gamenight', sets.gamenight.idx + setIdxOffset)
+    board = getObjectFromGUID('ed0d18')
+    if config.cardsToUse.gamenight then
+        board.setCustomObject({ image = 'http://cloud-3.steamusercontent.com/ugc/1484453420140596156/AD57634F0C36B098F33893C369F734E6CA89B7C5/' })
+    else
+        board.setCustomObject({ image = 'http://cloud-3.steamusercontent.com/ugc/1481075385831988640/9A499090712E5C15832F531DDE18236F461B042E/' })
+    end
+    board.reload()
+end
+
+for exp, data in pairs(sets) do
+    self.createButton({
+        click_function = data.click_function,
+        function_owner = self,
+        label = data.label,
+        tooltip = data.char_num .. " Characters",
+        position = { 7.3, 0.59, 7.42 - ((4-data.idx)/1.9) },
+        width = 900,
+        height = 250,
+        font_size = 90,
+        color = data.default_color,
+        font_color = { 0, 0, 0 }
+})
+end
+
+--------------------
+-- GAME MODE TOGGLES
+--------------------
+
+modeIdxOffset = 6
+gameModes = { }
+gameModes.allneutrals = {
+    click_function = "toggleAllNeutrals",
+    label = "Neutrals Only",
+    tooltip = "When toggled, players will only receive Neutral Character cards (including duplicate letters) from the selected expansions. Have fun, and good luck!",
+    idx = 0,
+    default_color = { 0.7, 0.7, 0.7 }
+}
+
+function toggleAllNeutrals()
+    toggleGameMode('allneutrals', gameModes.allneutrals.idx + modeIdxOffset)
+end
+
+for exp, data in pairs(gameModes) do
+    self.createButton({
+        click_function = data.click_function,
+        function_owner = self,
+        label = data.label,
+        tooltip = data.tooltip,
+        position = { 5.35, 0.59, 7.42 - ((4-data.idx)/1.9) },
+        width = 900,
+        height = 250,
+        font_size = 90,
+        color = data.default_color,
+        font_color = { 0, 0, 0 }
+    })
+end
