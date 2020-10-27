@@ -1,3 +1,8 @@
+#include config
+#include GameModes/regular
+#include GameModes/allneutrals
+#include GameModes/allrandom
+
 function getCards()
     cards = {}
 
@@ -11,64 +16,7 @@ function getCards()
 
     return cards
 end
-
-function getPicks(team, cards, playerCount, cardsToUse)
-    letters = {}
 
-    for guid, card in pairs(cards) do
-        canUse = false
-        for set,shouldUse in pairs(cardsToUse) do
-            needsMorePlayers = playerCount == 5 and card.tags.minsix
-            if card.tags[set] and shouldUse and not needsMorePlayers then
-                canUse = true
-            end
-        end
-        if canUse then
-            if card.team == team then
-	                if letters[card.letter] == nil then
-	                    letters[card.letter] = { max = 0 }
-	                end
-	                letter = letters[card.letter]
-	                letter[tostring(letter.max)] = guid
-	                letter.max = letter.max + 1
-            end
-        end
-    end
-
-    --broadcastToAll(JSON.encode(letters), {1,1,1})
-
-    	picks = {}
-
-    	for letter, group in pairs(letters) do
-	        index = math.random(0, group.max-1)
-	        picks[#picks+1] = group[tostring(index)]
-    	end
-
-    --broadcastToAll(JSON.encode(picks), {1,1,1})
-
-    return picks
-end
-
-function getAllNeutralsPicks(cards, playerCount, cardsToUse)
-    list = {}
-
-    for guid, card in pairs(cards) do
-        canUse = false
-        for set,shouldUse in pairs(cardsToUse) do
-            if card.tags[set] and shouldUse and not card.tags.noallneutrals then
-                canUse = true
-            end
-        end
-        if canUse then
-            if card.team == 'neutral' then
-                list[#list+1] = guid
-            end
-        end
-    end
-
-    return list
-end
-
 function incOffset(xoffset, yoffset)
     if xoffset > 14 then
         yoffset = yoffset+5
@@ -79,66 +27,7 @@ function incOffset(xoffset, yoffset)
     return xoffset, yoffset
 end
 
-function addCards(guids, count, cards)
-    starting_count = #guids
-    while count > 0 and #guids < (starting_count + #cards) do
-        card = cards[math.random(1, #cards)]
-        contains = false
-        for _, guid in ipairs(guids) do
-            if guid == card then
-                contains = true
-            end
-        end
-        if contains == false then
-            guids[#guids+1] = card
-            count = count - 1
-        end
-    end
-end
-
-function getCardGuids(playerCount, hunters, shadows, neutrals, gameMode)
-    num_hunters = 2
-    num_shadows = 2
-    if playerCount > 7 then
-        num_hunters = 3
-        num_shadows = 3
-    end
-
-    num_neutrals = 0
-    if playerCount > 4 then
-        num_neutrals = num_neutrals + 1
-    end
-    if playerCount > 5 then
-        num_neutrals = num_neutrals + 1
-    end
-    if playerCount == 7 then
-        num_neutrals = num_neutrals + 1
-    end
-    if playerCount > 8 then
-        num_neutrals = num_neutrals + 1
-    end
-    if playerCount > 9 then
-        num_neutrals = num_neutrals + 1
-    end
-
-    if gameMode.allneutrals then
-        num_hunters = 0
-        num_shadows = 0
-        num_neutrals = playerCount
-    end
-
-    guids = {}
-
-    addCards(guids, num_hunters, hunters)
-    addCards(guids, num_shadows, shadows)
-    addCards(guids, num_neutrals, neutrals)
-
-    return guids
-end
-
-function dealCards(playerCount, hunters, shadows, neutrals, gameMode)
-    guids = getCardGuids(playerCount, hunters, shadows, neutrals, gameMode)
-
+function dealCards(guids)
     cardsToGroup = {}
     xoffset = 0
     yoffset = 0
@@ -184,45 +73,13 @@ function dealCards(playerCount, hunters, shadows, neutrals, gameMode)
     })
 end
 
-function startGame(params)
-    playerCount = params.playerCount
-    cardsToUse = params.cardsToUse
-    gameMode = params.gameMode
-
-    minPlayerCount = 4
-    if gameMode.allneutrals then minPlayerCount = 3 end
-    if playerCount < minPlayerCount then
-        broadcastToAll("Not enough players to start the game.")
-        return false
-    end
-
-    	cards = getCards()
-
-    --broadcastToAll(JSON.encode(cards), {1,1,1})
-
-    hunters = getPicks('hunter', cards, playerCount, cardsToUse, gameMode)
-    shadows = getPicks('shadow', cards, playerCount, cardsToUse, gameMode)
-    neutrals = getPicks('neutral', cards, playerCount, cardsToUse, gameMode)
-    if gameMode.allneutrals then
-        neutrals = getAllNeutralsPicks(cards, playerCount, cardsToUse)
-    end
-
-    maxPlayers = 0
-    for _,_ in ipairs(hunters) do maxPlayers = maxPlayers + 1 end
-    for _,_ in ipairs(shadows) do maxPlayers = maxPlayers + 1 end
-    if gameMode.allneutrals then maxPlayers = 0 end
-    for _,_ in ipairs(neutrals) do maxPlayers = maxPlayers + 1 end
-    if playerCount > maxPlayers then
-        broadcastToAll("Not enough cards for this many players.  Enable more expansions.")
-        return false
-    end
-
-    dealCards(playerCount, hunters, shadows, neutrals, gameMode)
-
+function shuffleDecks()
     getObjectFromGUID('62a7a0').shuffle()
     getObjectFromGUID('96fa0d').shuffle()
     getObjectFromGUID('212f10').shuffle()
+end
 
+function dealAreaCards()
     area_cards = getObjectFromGUID('26621c')
     area_cards.shuffle()
 
@@ -234,6 +91,38 @@ function startGame(params)
         })
         area_card.setLock(true)
     end
+end
+
+function startGame(params)
+    playerCount = params.playerCount
+    cardsToUse = params.cardsToUse
+    gameMode = params.gameMode
+
+    modeName = 'regular'
+    for name,use in pairs(gameMode) do
+        if use then modeName = name end
+    end
+    modeModule = modeModules[modeName]
+
+    if not modeModule.validatePlayerCount(playerCount) then
+        return false
+    end
+
+	cards = getCards()
+
+    picks = modeModule.getGuidsByLetter(cards, cardsToUse)
+    teamCounts = modeModule.getTeamCounts(playerCount)
+
+    if not modeModule.validateCardCount(teamCounts, picks) then
+        return false
+    end
+
+    guids = modeModule.getGuidsToUse(teamCounts, picks)
+
+    dealCards(guids)
+
+    shuffleDecks()
+    dealAreaCards()
 
     return true
 end

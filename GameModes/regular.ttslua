@@ -1,0 +1,109 @@
+if modeModules == nil then
+    modeModules = {}
+end
+
+modeModules.regular = { }
+
+modeModules.regular.validatePlayerCount = function(playerCount)
+    if playerCount < 4 then
+        broadcastToAll("Not enough players to start the game.\nRequires a minimum of 4 players.")
+        return false
+    end
+    return true
+end
+
+modeModules.regular.validateCardCount = function(teamCounts, picks)
+    for _,team in ipairs(config.teams) do
+        numLetters = 0
+        for _,_ in pairs(picks[team]) do numLetters = numLetters+1 end
+        if numLetters < teamCounts[team] then
+            broadcastToAll("Not enough cards for this many players.  Enable more expansions.")
+            return false
+        end
+    end
+    return true
+end
+
+modeModules.regular.getGuidsByLetter = function(cards, cardsToUse)
+    picks = {}
+    for _,team in ipairs(config.teams) do
+        picks[team] = {}
+    end
+    for guid, card in pairs(cards) do
+        canUse = false
+        for set,shouldUse in pairs(cardsToUse) do
+            needsMorePlayers = playerCount == 5 and card.tags.minsix
+            if card.tags[set] and shouldUse and not needsMorePlayers then
+                canUse = true
+            end
+        end
+        if canUse then
+            if picks[card.team][card.letter] == nil then
+                picks[card.team][card.letter] = {}
+            end
+            cardsForLetter = picks[card.team][card.letter]
+            cardsForLetter[#cardsForLetter+1] = guid
+        end
+    end
+    return picks
+end
+
+modeModules.regular.getTeamCounts = function(playerCount)
+    num_hunters = 2
+    num_shadows = 2
+    if playerCount > 7 then
+        num_hunters = 3
+        num_shadows = 3
+    end
+
+    num_neutrals = 0
+    if playerCount > 4 then
+        num_neutrals = num_neutrals + 1
+    end
+    if playerCount > 5 then
+        num_neutrals = num_neutrals + 1
+    end
+    if playerCount == 7 then
+        num_neutrals = num_neutrals + 1
+    end
+    if playerCount > 8 then
+        num_neutrals = num_neutrals + 1
+    end
+    if playerCount > 9 then
+        num_neutrals = num_neutrals + 1
+    end
+
+    return {
+        hunter = num_hunters,
+        shadow = num_shadows,
+        neutral = num_neutrals
+    }
+end
+
+modeModules.regular.getGuidsToUse = function(teamCounts, picks)
+    guids = {}
+
+    for _,team in ipairs(config.teams) do
+        _regularGetTeamGuidsToUse(teamCounts[team], picks[team], guids)
+    end
+
+    return guids
+end
+
+function _regularGetTeamGuidsToUse(teamCount, teamPicks, guids)
+    lettersToPickFrom = {}
+    for letter,_ in pairs(teamPicks) do
+        lettersToPickFrom[#lettersToPickFrom+1] = letter
+    end
+
+    while teamCount > 0 do
+        letterIndex = math.random(#lettersToPickFrom)
+        letter = lettersToPickFrom[letterIndex]
+        guidIndex = math.random(#teamPicks[letter])
+        guid = teamPicks[letter][guidIndex]
+        guids[#guids+1] = guid
+        teamCount = teamCount-1
+        lettersToPickFrom[letterIndex] = lettersToPickFrom[#lettersToPickFrom]
+        lettersToPickFrom[#lettersToPickFrom] = nil
+    end
+end

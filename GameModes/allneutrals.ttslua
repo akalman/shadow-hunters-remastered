@@ -1,0 +1,96 @@
+if modeModules == nil then
+    modeModules = {}
+end
+
+modeModules.allneutrals = { }
+
+modeModules.allneutrals.validatePlayerCount = function(playerCount)
+
+    if playerCount < 3 then
+        broadcastToAll("Not enough players to start the game.\nNeutrals Only requires a minimum of 3 players.")
+        return false
+    end
+    return true
+end
+
+modeModules.allneutrals.validateCardCount = function(teamCounts, picks)
+    broadcastToAll("validateCardCount")
+    numNeutrals = 0
+    for _,neutralCards in pairs(picks.neutral) do
+        numNeutrals = numNeutrals + #neutralCards
+    end
+
+    if teamCounts.neutral > numNeutrals then
+        broadcastToAll("Not enough cards for this many players.  Enable more expansions.")
+        return false
+    end
+    return true
+end
+
+modeModules.allneutrals.getGuidsByLetter = function(cards, cardsToUse)
+    broadcastToAll("getGuidsByLetter")
+    picks = {}
+    for _,team in ipairs(config.teams) do
+        picks[team] = {}
+    end
+    for guid, card in pairs(cards) do
+        canUse = false
+        for set,shouldUse in pairs(cardsToUse) do
+            if card.tags[set] and shouldUse and not card.tags.noallneutrals then
+                canUse = true
+            end
+        end
+        if canUse then
+            if picks[card.team][card.letter] == nil then
+                picks[card.team][card.letter] = {}
+            end
+            cardsForLetter = picks[card.team][card.letter]
+            cardsForLetter[#cardsForLetter+1] = guid
+        end
+    end
+    return picks
+end
+
+modeModules.allneutrals.getTeamCounts = function(playerCount)
+    return {
+        hunter = 0,
+        shadow = 0,
+        neutral = playerCount
+    }
+end
+
+modeModules.allneutrals.getGuidsToUse = function(teamCounts, picks)
+    broadcastToAll("getGuidsToUse")
+    guids = {}
+
+    for _,team in ipairs(config.teams) do
+        _regularGetTeamGuidsToUse(teamCounts[team], picks[team], guids)
+    end
+
+    return guids
+end
+
+function _allNeutralGetTeamGuidsToUse(teamCount, teamPicks, guids)
+    broadcastToAll("getTeamGuidsToUse")
+    lettersToPickFrom = {}
+    for letter,_ in pairs(teamPicks) do
+        lettersToPickFrom[#lettersToPickFrom+1] = letter
+    end
+
+    while teamCount > 0 do
+        letterIndex = math.random(#lettersToPickFrom)
+        letter = lettersToPickFrom[letterIndex]
+        guidIndex = math.random(#teamPicks[letter])
+        guid = teamPicks[letter][guidIndex]
+
+        alreadyPicked = false
+        for _,pickedGuid in ipairs(guids) do
+            if pickedGuid == guid then alreadyPicked = true end
+        end
+
+        if not alreadyPicked then
+            guids[#guids+1] = guid
+            teamCount = teamCount-1
+        end
+    end
+end

@@ -26,7 +26,7 @@ end
 function startGame(obj, color, alt_click)
     params = {
         playerCount = getPlayerCount(),
-        --playerCount = 10,
+        -- playerCount = 3,
         cardsToUse = config.cardsToUse,
         gameMode = config.gameMode
     }
@@ -53,7 +53,7 @@ function toggleCardsToUse(key, idx)
         self.editButton({
             index = idx,
             color = { 0.7, 0.7, 0.7 }
-        })
+        })
     end
 end
 
@@ -68,7 +68,7 @@ function toggleGameMode(key, idx)
         self.editButton({
             index = idx,
             color = { 0.7, 0.7, 0.7 }
-        })
+        })
     end
 end
 
@@ -105,7 +105,8 @@ sets.romantic = {
     idx = 1,
     default_color = { 0.7, 0.7, 0.7 }
 }
-sets.muttstain = {
+sets.
+muttstain = {
     click_function = "toggleMuttstain",
     label = "Muttstain Expansion",
     char_num = "80",
@@ -170,18 +171,42 @@ end
 -- GAME MODE TOGGLES
 --------------------
 
-modeIdxOffset = 6
+modeIdxOffset = 1
+for _,_ in pairs(sets) do modeIdxOffset = modeIdxOffset + 1 end
+
+currentGameMode = nil
 gameModes = { }
 gameModes.allneutrals = {
     click_function = "toggleAllNeutrals",
     label = "Neutrals Only",
-    tooltip = "When toggled, players will only receive Neutral Character cards (including duplicate letters) from the selected expansions. Have fun, and good luck!",
+    tooltip = "When toggled, players will only receive Neutral Character cards (including duplicate letters) from the selected expansion(s). This game mode supports a minimum of 3 players. Have fun and good luck!",
     idx = 0,
+    default_color = { 0.7, 0.7, 0.7 }
+}
+gameModes.allrandom = {
+    click_function = "toggleAllRandom",
+    label = "Free For All",
+    tooltip = "When toggled, players will receive any amount of Shadows, Hunters or Neutrals (including duplicate letters) from the selected expansion(s). This game mode supports a minimum of 3 players. Have fun, good luck, and mayhaps use those Hermit Cards (or don’t if you want to make it spicy).",
+    idx = 1,
     default_color = { 0.7, 0.7, 0.7 }
 }
 
 function toggleAllNeutrals()
-    toggleGameMode('allneutrals', gameModes.allneutrals.idx + modeIdxOffset)
+    toggleGameModeHelper("allneutrals")
+end
+function toggleAllRandom()
+    toggleGameModeHelper("allrandom")
+end
+function toggleGameModeHelper(nextGameMode)
+    if currentGameMode != nil then
+        toggleGameMode(currentGameMode, gameModes[currentGameMode].idx + modeIdxOffset)
+    end
+    if (currentGameMode != nextGameMode) then
+        toggleGameMode(nextGameMode, gameModes[nextGameMode].idx + modeIdxOffset)
+        currentGameMode = nextGameMode
+    else
+        currentGameMode = nil
+    end
 end
 
 for exp, data in pairs(gameModes) do
@@ -190,7 +215,7 @@ for exp, data in pairs(gameModes) do
         function_owner = self,
         label = data.label,
         tooltip = data.tooltip,
-        position = { 5.35, 0.59, 7.42 - ((4-data.idx)/1.9) },
+        position = { 5.35, 0.59, 7.42 - ((modeIdxOffset-2-data.idx)/1.9) },
         width = 900,
         height = 250,
         font_size = 90,

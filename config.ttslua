@@ -19,7 +19,9 @@ config = {
         gamenight = false
     },
     gameMode = {
-        allneutrals = false
+        allneutrals = false,
+        allrandom = false
     },
-    pieces = _pieces
+    pieces = _pieces,
+    teams = { 'hunter', 'shadow', 'neutral' }
 }

@@ -1,0 +1,90 @@
+if modeModules == nil then
+    modeModules = {}
+end
+
+modeModules.allrandom = { }
+
+modeModules.allrandom.validatePlayerCount = function(playerCount)
+    if playerCount < 3 then
+        broadcastToAll("Not enough players to start the game.\nFree For All requires a minimum of 3 players.")
+        return false
+    end
+    return true
+end
+
+modeModules.allrandom.validateCardCount = function(teamCounts, picks)
+    totalCards = 0
+    for _,team in ipairs(config.teams) do
+        for _,_ in pairs(picks[team]) do totalCards = totalCards+1 end
+    end
+    if totalCards < teamCounts.neutral then
+        broadcastToAll("Not enough cards for this many players.  Enable more expansions.")
+        return false
+    end
+    return true
+end
+
+modeModules.allrandom.getGuidsByLetter = function(cards, cardsToUse)
+    picks = {}
+    for _,team in ipairs(config.teams) do
+        picks[team] = {}
+    end
+    for guid, card in pairs(cards) do
+        canUse = false
+        for set,shouldUse in pairs(cardsToUse) do
+            if card.tags[set] and shouldUse then
+                canUse = true
+            end
+        end
+        if canUse then
+            if picks[card.team][card.letter] == nil then
+                picks[card.team][card.letter] = {}
+            end
+            cardsForLetter = picks[card.team][card.letter]
+            cardsForLetter[#cardsForLetter+1] = guid
+        end
+    end
+    return picks
+end
+
+modeModules.allrandom.getTeamCounts = function(playerCount)
+    return {
+        hunter = 0,
+        shadow = 0,
+        neutral = playerCount
+    }
+end
+
+modeModules.allrandom.getGuidsToUse = function(teamCounts, picks)
+    guids = {}
+
+    count = teamCounts.neutral
+    teams = config.teams
+
+    while count > 0 do
+        teamIndex = math.random(#teams)
+        team = teams[teamIndex]
+
+        letters = {}
+        for k,v in pairs(picks[team]) do
+            letters[#letters+1] = k
+        end
+
+        letterIndex = math.random(#letters)
+        letter = letters[letterIndex]
+        guidIndex = math.random(#picks[team][letter])
+        guid = picks[team][letter][guidIndex]
+
+        alreadyPicked = false
+        for _,pickedGuid in ipairs(guids) do
+            if pickedGuid == guid then alreadyPicked = true end
+        end
+
+        if not alreadyPicked then
+            guids[#guids+1] = guid
+            count = count-1
+        end
+    end
+
+    return guids
+end
